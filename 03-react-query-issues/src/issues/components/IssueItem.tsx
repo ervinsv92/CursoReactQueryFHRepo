@@ -2,6 +2,8 @@ import { FiInfo, FiMessageSquare, FiCheckCircle } from 'react-icons/fi';
 import { Issue, State } from '../interfaces';
 import { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { getIssueComments, getIssueInfo } from '../hooks/useIssue';
 
 interface Props{
     issue:Issue
@@ -10,10 +12,34 @@ interface Props{
 export const IssueItem :FC<Props>= ({issue}) => {
 
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
+    //consultaria la info en la api
+    const onMouseEnter = ()=>{
+        queryClient.prefetchQuery({
+            queryKey:['issue', issue.number],
+            queryFn: () => getIssueInfo(issue.number)
+        });
+
+        queryClient.prefetchQuery({
+            queryKey:['issue', issue.number],
+            queryFn: () => getIssueComments(issue.number)
+        });
+    }
+
+    //setea info que ya tenemos cargada desde antes, no tenemos que ir al api
+    const preSetData = ()=>{
+        queryClient.setQueryData(['issue', issue.number], issue, 
+        {
+            updatedAt: new Date().getTime() + 100000 //mantiene la informacion fresca en cache por ese tiempo, asi no se vuelve a consultar antes de tiempo
+        }
+        );
+    }
 
     return (
         <div className="card mb-2 issue"
             onClick={()=> navigate(`/issues/issue/${issue.number}`)}
+            onMouseEnter={preSetData}
         >
             <div className="card-body d-flex align-items-center">
                 {
